@@ -160,21 +160,14 @@ begin
 
   -- Call the Edge Function asynchronously via pg_net
   -- This is non-blocking: the trigger returns immediately
-  insert into net.http_request (
-    method,
-    url,
-    headers,
-    body,
-    timeout_milliseconds
-  ) values (
-    'POST',
-    v_edge_function_url,
-    jsonb_build_object(
+  perform net.http_post(
+    url := v_edge_function_url,
+    headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-agent-runner-secret', v_runner_secret
     ),
-    v_payload,
-    30000
+    body := v_payload,
+    timeout_milliseconds := 30000
   );
 
   return new;
@@ -189,5 +182,5 @@ for each row
 execute function public.trigger_agent_reactive_reply();
 
 -- ── 8. Grant necessary permissions ──
-grant usage on schema net to postgres;
-grant select on net.http_request to postgres;
+-- pg_net lives in extensions schema; the trigger function already runs as security definer
+-- so it can access extensions.net._http_request internally. No extra grants needed.
